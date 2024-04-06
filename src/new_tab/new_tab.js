@@ -31,10 +31,10 @@ const list = [
 	new Item("Source", "https://github.com/Eloston/ungoogled-chromium"),
 ]
 
-const imgSize = 32;
-
 // FUNCTIONS
-const container = document.getElementById("container");
+document.getElementById("btn-options").onclick = () => chrome.runtime.openOptionsPage();
+
+const container = document.getElementById("shortcut-container");
 
 list.forEach(item => container.appendChild(generateShortcut(item)));
 
@@ -42,31 +42,31 @@ list.forEach(item => container.appendChild(generateShortcut(item)));
 function generateShortcut(item)
 {
 	const a = document.createElement("a");
-	a.href = item.url;
+	if(item.url && item.url !== "")
+		a.href = item.url;
 
-	const divImg = document.createElement("div");
-	divImg.className = "div-icon";
-
-	const divText = document.createElement("div");
-	divText.className = "div-text";
-	divText.innerHTML = item.name;
-	
 	if(item.url){
+		const divImg = document.createElement("div");
+		divImg.className = "div-icon";
+		a.appendChild(divImg);
+
 		const img = document.createElement("img");
 		img.alt = item.name;
 		img.src = getFaviconUrl(item.url);
-		img.width = imgSize;
 		divImg.appendChild(img);
 	}
-
-	a.appendChild(divImg);
-	a.appendChild(divText);
+	
+	if(item.name && item.name !== ""){
+		const elText = document.createElement("p");
+		elText.innerHTML = item.name;
+		a.appendChild(elText);
+	}
 
 	return a;
 }
 
 var fixed = document.getElementById("fixed-black");
-document.getElementById("button-black").onclick = switchBlack;
+document.getElementById("btn-black").onclick = switchBlack;
 fixed.onclick = switchBlack;
 
 function switchBlack()
@@ -81,13 +81,18 @@ function getFaviconUrl(url)
 		return "";
 
 	let faviconUrl;
+	const faviconSize = 32;
 
-	if(chrome.runtime)
+	if(chrome.runtime){
 		faviconUrl = new URL(`chrome-extension://${chrome.runtime.id}/_favicon/`);
-	else
-		faviconUrl = new URL(`https://www.google.com/s2/favicons?sz=128&domain_url=${url}`);
+		faviconUrl.searchParams.append('pageUrl', url);
+		faviconUrl.searchParams.append('size', 32);
+	}
+	else{
+		faviconUrl = new URL(`https://www.google.com/s2/favicons?sz=${size}&domain_url=${url}`);
+		// faviconUrl.searchParams.append('sz', size);
+		// faviconUrl.searchParams.append('domain_url', url);
+	}
 
-	faviconUrl.searchParams.append('pageUrl', url);
-	faviconUrl.searchParams.append('size', imgSize.toString());
 	return faviconUrl.href;
 }

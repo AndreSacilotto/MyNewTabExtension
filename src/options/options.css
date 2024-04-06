@@ -1,0 +1,60 @@
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html{
+	font-size: 1rem;
+}
+
+body {
+	background-color: lightgrey;
+
+	padding: 10vh;
+	height: 100vh;
+
+	box-shadow: inset 0px 0px 15px 5px rgba(0, 0, 0, 0.25);
+
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+	text-align: center;
+}
+
+
+h1{
+	text-align: center;
+}
+
+button{
+	border: none;
+	background-color: aliceblue;
+	color: black;
+
+	padding: 1rem 2rem;
+	border-radius: 1rem;
+}
+
+button:hover{
+	background-color: black;
+	color: white;
+}
+
+#options{
+	display: grid;
+
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-auto-rows: min-content;
+	grid-auto-flow: row;
+	
+	gap: 3vmin;
+}
+
+.input-element>*{
+	width: 100%;
+}
+.input-element>label{
+	text-align: center;
+	display: block;
+}
