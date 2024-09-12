@@ -1,3 +1,4 @@
+//#region CLASSES
 class Item {
 	/** @param {string} name @param {string} url */
 	constructor(name, url) {
@@ -6,14 +7,51 @@ class Item {
 	}
 }
 
-//#region VARS
+//#region ELEMENTS
 
 const container = document.getElementById("options");
 const saveBtn = document.getElementById("btn-save");
-const alertBtn = document.getElementById("btn-alert");
-const defaultBtn = document.getElementById("btn-default");
+const importBtn = document.getElementById("btn-import");
+const exportBtn = document.getElementById("btn-export");
+
 /** @type {HTMLInputElement} */
 const imageSizeInput = document.getElementById("img-size");
+
+//#region VARS
+
+/** @type {Item[]} */
+const defaultList = [
+	new Item("Youtube", "https://www.youtube.com/"),
+	new Item("Translate", "https://translate.google.com.br/?sl=pt&tl=en&op=translate"),
+	new Item("", ""),
+	new Item("Regex", "https://regex101.com/"),
+	new Item("Desmos", "https://www.desmos.com/calculator"),
+
+	new Item("Drive", "https://drive.google.com/drive/my-drive"),
+	new Item("", ""),
+	new Item("", ""),
+	new Item("R3", "https://andresacilotto.github.io/R3/r3.html"),
+	new Item("Symbolab", "https://www.symbolab.com/"),
+
+	new Item("", ""),
+	new Item("", ""),
+	new Item("ZapZap", "https://web.whatsapp.com/"),
+	new Item("My Git", "https://github.com/AndreSacilotto?tab=repositories"),
+	new Item("Source", "https://github.com/Eloston/ungoogled-chromium"),
+]
+
+//#region CREATE ELEMENTS
+
+const inputElements = defaultList.map((x, index) => {
+	const label = Math.floor(index / 5) + "\t" + index % 5; // always 5 columns 
+	const itemInput = createItemInput(label, x.name, x.url)
+	container.appendChild(itemInput.div);
+	return itemInput;
+});
+
+LoadFromData(await GetStorageData());
+
+//#region FUNCS
 
 function createItemInput(label = "", name = "", url = "") {
 
@@ -29,7 +67,7 @@ function createItemInput(label = "", name = "", url = "") {
 	inputName.placeholder = "Shorcut Name...";
 	inputName.value = name;
 	div.appendChild(inputName);
-	
+
 	const inputUrl = document.createElement("input");
 	inputUrl.type = "text";
 	inputUrl.placeholder = "Shorcut Url..."
@@ -39,97 +77,79 @@ function createItemInput(label = "", name = "", url = "") {
 	return { div, label: labelEl, inputName, inputUrl };
 }
 
-const itemsStorageKey = "items";
-const sizeStorageKey = "size";
 
-/** @type {Item[]} */
-const defaultList = [
-	new Item("Youtube", "https://www.youtube.com/"),
-	new Item("Translate", "https://translate.google.com.br/?sl=pt&tl=en&op=translate"),
-	new Item("", ""),
-	new Item("Regex", "https://regex101.com/"),
-	new Item("Desmos", "https://www.desmos.com/calculator"),
+async function GetStorageData() {
+	const result = await chrome.storage.local.get(["size", "items"]);
+	if (!result)
+		return null;
+	return result;
+}
 
-	new Item("Drive", "https://drive.google.com/drive/my-drive"),
-	new Item("", ""),
-	new Item("", ""),
-	new Item("R3", "https://www.4devs.com.br/calculadora_regra_tres_simples"),
-	new Item("Symbolab", "https://www.symbolab.com/"),
+/** @param { { size: string, items: Item[] } } storage  */
+function LoadFromData(storage) {
+	if(!storage)
+		return;
 
-	new Item("", ""),
-	new Item("", ""),
-	new Item("ZapZap", "https://web.whatsapp.com/"),
-	new Item("My Git", "https://github.com/AndreSacilotto?tab=repositories"),
-	new Item("Source", "https://github.com/Eloston/ungoogled-chromium"),
-]
+	console.log(storage);
 
-//#region MAIN
-
-//Create the elements
-
-const inputElements = defaultList.map((x, index) => {
-	const item = new Item(x.name, x.url);
-	const itemInput = createItemInput(Math.floor(index / 5) + "\t" + index % 5, item.name, item.url)
-	container.appendChild(itemInput.div);
-	return { item, input: itemInput }
-});
-
-(async function LoadFromStorage() {
+	if (storage.size)
+		imageSizeInput.value = storage.size;
 	
-	const result = await chrome.storage.local.get([itemsStorageKey, sizeStorageKey]);
-	if(!result)
-	 	return;
-
-		console.log(result);
 	/** @type {Item[]} */
-	const storageList = result[itemsStorageKey];
-	if(result && storageList && storageList.length > 0)
+	if (storage.items && storage.items.length > 0)
 	{
-		for (let i = 0; i < inputElements.length && i < storageList.length; i++) {
+		for (let i = 0; i < inputElements.length && i < storage.items.length; i++)
+		{
 			const a = inputElements[i];
-			a.item = storageList[i];
-			a.input.inputName.value = a.item.name || "";
-			a.input.inputUrl.value = a.item.url || "";
+			a.item = storage.items[i];
+			a.inputName.value = a.item.name || "";
+			a.inputUrl.value = a.item.url || "";
 		}
 	}
+}
 
-	const storageSize = result[sizeStorageKey];
-	if(result && storageSize)
-		imageSizeInput.value = storageSize;
-})();
-
-inputElements.forEach(x => {
-	x.input.inputName.onchange = () => x.item.name = x.input.inputName.value || "";
-	x.input.inputUrl.onchange = () => x.item.url = x.input.inputUrl.value || "";
-})
+function createStorageObj() {
+	return {
+		size: imageSizeInput.value,
+		items: inputElements.map(x => new Item(x.inputName.value, x.inputUrl.value))
+	};
+}
 
 //#region EVENTS
 
-function createStorageObj() {
-	const obj = {};
-	obj[sizeStorageKey] = imageSizeInput.value;
-	obj[itemsStorageKey] = inputElements.map(x => x.item);
-	return obj;
-}
-
-saveBtn.onclick = async () => {
+saveBtn.onclick = () => {
 	const obj = createStorageObj();
-	await chrome.storage.local.set(obj);
-	console.log("Value is set");
+	chrome.storage.local.set(obj).then(() => { console.log("Value is set") })
 }
 
-defaultBtn.onclick = () =>{
-	for (let i = 0; i < inputElements.length; i++) {
-		const el = inputElements[i];
-		el.item = new Item(defaultList[i].name, defaultList[i].url);
-		el.input.inputName.value = defaultList[i].name;
-		el.input.inputUrl.value = defaultList[i].url;
-	}
-	console.log("Set to default");
-	console.log(inputElements);
+// defaultBtn.onclick = () =>{
+// 	for (let i = 0; i < inputElements.length; i++) {
+// 		const el = inputElements[i];
+// 		el.item = new Item(defaultList[i].name, defaultList[i].url);
+// 		el.input.inputName.value = defaultList[i].name;
+// 		el.input.inputUrl.value = defaultList[i].url;
+// 	}
+// 	console.log("Set to default", inputElements);
+// }
+
+importBtn.onclick = () => {
+	const result = prompt("JSON Object:");
+
+	/** @type {JSON | string} */
+	let json;
+	try { json = JSON.parse(result) }
+	catch { json = ""; }
+
+	if (json != "")
+		chrome.storage.local.set(json).then(() => {
+			console.log("Succefully imported Json");
+			LoadFromData(json);
+		});
+	else
+		alert("Invalid Json");
 }
 
-alertBtn.onclick = () =>{
+exportBtn.onclick = () => {
 	const obj = createStorageObj();
 	const str = JSON.stringify(obj);
 	console.log(str);

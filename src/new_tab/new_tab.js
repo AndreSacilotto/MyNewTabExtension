@@ -1,4 +1,4 @@
-
+//#region CLASSES
 class Item
 {
 	/** @param {string} name @param {string} url */
@@ -9,69 +9,55 @@ class Item
 	}
 }
 
-// DATA
-
-const list = [
-	new Item("Youtube", "https://www.youtube.com/"),
-	new Item("Translate", "https://translate.google.com.br/?sl=pt&tl=en&op=translate"),
-	new Item("", ""),
-	new Item("Regex", "https://regex101.com/"),
-	new Item("Desmos", "https://www.desmos.com/calculator"),
-	
-	new Item("Drive", "https://drive.google.com/drive/my-drive"),
-	new Item("", ""),
-	new Item("", ""),
-	new Item("R3", "https://www.4devs.com.br/calculadora_regra_tres_simples"),
-	new Item("Symbolab", "https://www.symbolab.com/"),
-	
-	new Item("Sauce", "https://saucenao.com/"),
-	new Item("", ""),
-	new Item("ZapZap", "https://web.whatsapp.com/"),
-	new Item("My Git", "https://github.com/AndreSacilotto?tab=repositories"),
-	new Item("Source", "https://github.com/Eloston/ungoogled-chromium"),
-]
-
-// FUNCTIONS
+//#region ELEMENTS
 document.getElementById("btn-options").onclick = () => chrome.runtime.openOptionsPage();
 
 const container = document.getElementById("shortcut-container");
 
-list.forEach(item => container.appendChild(generateShortcut(item)));
+const overlay = document.getElementById("fixed-black");
+overlay.onclick = () => overlay.hidden = !overlay.hidden;
+document.getElementById("btn-black").onclick = overlay.onclick;
 
-/** @param {Item} item @returns {HTMLElement} */
-function generateShortcut(item)
+//#region CREATE ELEMENTS
+
+/** @type { { size: string, items: Item[] } } */
+const storage = await GetStorageData();
+
+storage.items.forEach(item => container.appendChild(generateShortcut(item.name, item.url)));
+
+//#region FUNCS
+
+async function GetStorageData() {
+	const result = await chrome.storage.local.get(["size", "items"]);
+	// console.log(result);
+	return result || {};
+}
+
+/** @param {string} name @param {string} url @returns {HTMLElement} */
+function generateShortcut(name, url)
 {
 	const a = document.createElement("a");
-	if(item.url && item.url !== "")
-		a.href = item.url;
+	if(url && url !== "")
+		a.href = url;
 
-	if(item.url){
+	if(url){
 		const divImg = document.createElement("div");
 		divImg.className = "div-icon";
 		a.appendChild(divImg);
 
 		const img = document.createElement("img");
-		img.alt = item.name;
-		img.src = getFaviconUrl(item.url);
+		img.alt = name;
+		img.src = getFaviconUrl(url);
 		divImg.appendChild(img);
 	}
 	
-	if(item.name && item.name !== ""){
+	if(name && name !== ""){
 		const elText = document.createElement("p");
-		elText.innerHTML = item.name;
+		elText.innerHTML = name;
 		a.appendChild(elText);
 	}
 
 	return a;
-}
-
-var fixed = document.getElementById("fixed-black");
-document.getElementById("btn-black").onclick = switchBlack;
-fixed.onclick = switchBlack;
-
-function switchBlack()
-{
-	fixed.hidden = !fixed.hidden;
 }
 
 /** @param {String} url @returns {String} */
@@ -81,17 +67,18 @@ function getFaviconUrl(url)
 		return "";
 
 	let faviconUrl;
-	const faviconSize = 32;
+	const faviconSize = storage.size || 32;
 
 	if(chrome.runtime){
 		faviconUrl = new URL(`chrome-extension://${chrome.runtime.id}/_favicon/`);
 		faviconUrl.searchParams.append('pageUrl', url);
-		faviconUrl.searchParams.append('size', 32);
+		faviconUrl.searchParams.append('size', faviconSize);
 	}
 	else{
-		faviconUrl = new URL(`https://www.google.com/s2/favicons?sz=${size}&domain_url=${url}`);
-		// faviconUrl.searchParams.append('sz', size);
-		// faviconUrl.searchParams.append('domain_url', url);
+		// faviconUrl = new URL(`https://www.google.com/s2/favicons?sz=${faviconSize}&domain_url=${url}`);
+		faviconUrl = new URL("https://www.google.com/s2/favicons");
+		faviconUrl.searchParams.append('domain_url', url);
+		faviconUrl.searchParams.append('sz', faviconSize);
 	}
 
 	return faviconUrl.href;
